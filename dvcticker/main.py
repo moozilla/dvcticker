@@ -17,14 +17,17 @@ def urlfetch_cache(url):
     if data is not None:
         return data
     else:
-        result = urlfetch.fetch(url)
-        if result.status_code == 200 and result.content != '"Unknown currency"':
-            obj = json.loads(result.content) #should probably add error handling in case bad json is passed
-            value = obj['value']
-            memcache.add(url, value, 15) #cache for 15 sec
-            return value
-        else:
-            return 'Error'#'Error accessing Vircurex API'
+        try:
+            result = urlfetch.fetch(url)
+            if result.status_code == 200 and result.content != '"Unknown currency"':
+                obj = json.loads(result.content) #should probably add error handling in case bad json is passed
+                value = obj['value']
+                memcache.add(url, value, 15) #cache for 15 sec
+                return value
+            else:
+                return 'Error'#'Error accessing Vircurex API'
+        except DeadlineExceededError:
+            return 'Error: timeout'
     
 def get_vircurex_json(type, base, alt):
     # gets json from vircurex about bid/ask prices
@@ -87,8 +90,8 @@ class ImageHandler(webapp2.RequestHandler):
             img.paste(coinimg, (0,2)) #paste the coin image into the generated image
             
         draw = ImageDraw.Draw(img)
-        #fnt = ImageFont.load('static/font/ncenB12.pil') # for testing locally, can't get truetype to work locally
-        fnt = ImageFont.truetype('static/font/tahoma_bold.ttf', 14, encoding='unic')
+        fnt = ImageFont.load('static/font/ncenB12.pil') # for testing locally, can't get truetype to work locally
+        #fnt = ImageFont.truetype('static/font/tahoma_bold.ttf', 14, encoding='unic')
         draw.text((text_pos,1), value, font=fnt, fill='#333333')
         del draw
         
