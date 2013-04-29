@@ -1,0 +1,29 @@
+application: dvcticker
+version: 1
+runtime: python27
+api_version: 1
+threadsafe: true
+
+handlers:
+- url: /favicon\.ico
+  static_files: favicon.ico
+  upload: favicon\.ico
+
+- url: /img
+  static_dir: ./static/img
+  application_readable: true
+  
+- url: /font
+  static_dir: ./static/font
+  application_readable: true
+
+- url: /.*
+  script: main.app
+
+libraries:
+- name: webapp2
+  version: "2.5.2"
+- name: PIL
+  version: latest
+- name: jinja2
+  version: latest

@@ -1,0 +1,37 @@
+<html>
+    <head>
+        <title>Cryptocoin Tickers</title>
+        <style type="text/css">
+            p {line-height: 2em}
+            code { border: 1px dotted #999; padding: 1px; background-color: #eee }
+        </style>
+    </head>
+    <body>
+        <h1>Cryptocoin Ticker Images</h1>
+        <p>
+        This is a simple app based on the idea of the <a href="http://btcticker.appspot.com/">Bitcoin Tickers</a> app.
+        Given a special URL, the app will generate images representing the value of a particular coin.
+        </p>
+        
+        <p>
+        For example, to generate an image for the current highest bid price for DVC in BTC on Vircurex, use the following URL: <br />
+        <code>http://dvcticker.appspot.com/vircurex/dvc/btc.png</code><br />
+        The resulting image: <img src="vircurex/dvc/btc.png" />
+        </p>
+        
+        <p>
+        The only currently supported exchange is Vircurex (more coming soon). Supported currencies are: BTC, USD, EUR, DVC, IXC, LTC, NMC, PPC, TRC.
+        </p>
+        
+        <p>
+        Some more examples:<br />
+        <table>
+        <tr><td><code>http://dvcticker.appspot.com/vircurex/btc/dvc.png</code></td><td><img src="vircurex/btc/dvc.png" /></td></tr>
+        <tr><td><code>http://dvcticker.appspot.com/vircurex/ltc/btc.png</code></td><td><img src="vircurex/ltc/btc.png" /></td></tr>
+        <tr><td><code>http://dvcticker.appspot.com/vircurex/trc/ppc.png</code></td><td><img src="vircurex/trc/ppc.png" /></td></tr>
+        <tr><td><code>http://dvcticker.appspot.com/vircurex/nmc/usd.png</code></td><td><img src="vircurex/nmc/usd.png" /></td></tr>
+        <tr><td><code>http://dvcticker.appspot.com/vircurex/ixc/eur.png</code></td><td><img src="vircurex/ixc/eur.png" /></td></tr>
+        </table>
+        </p>
+    </body>
+</html>
