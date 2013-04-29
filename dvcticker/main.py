@@ -18,7 +18,7 @@ def urlfetch_cache(url):
         return data
     else:
         try:
-            result = urlfetch.fetch(url)
+            result = urlfetch.fetch(url,deadline=10) #timeout after 10 sec
             if result.status_code == 200 and result.content != '"Unknown currency"':
                 obj = json.loads(result.content) #should probably add error handling in case bad json is passed
                 value = obj['value']
@@ -27,6 +27,8 @@ def urlfetch_cache(url):
             else:
                 return 'Error'#'Error accessing Vircurex API'
         except DeadlineExceededError:
+            return 'Error: timeout'
+        except DownloadError:
             return 'Error: timeout'
     
 def get_vircurex_json(type, base, alt):
@@ -90,8 +92,8 @@ class ImageHandler(webapp2.RequestHandler):
             img.paste(coinimg, (0,2)) #paste the coin image into the generated image
             
         draw = ImageDraw.Draw(img)
-        fnt = ImageFont.load('static/font/ncenB12.pil') # for testing locally, can't get truetype to work locally
-        #fnt = ImageFont.truetype('static/font/tahoma_bold.ttf', 14, encoding='unic')
+        #fnt = ImageFont.load('static/font/ncenB12.pil') # for testing locally, can't get truetype to work locally
+        fnt = ImageFont.truetype('static/font/tahoma_bold.ttf', 14, encoding='unic')
         draw.text((text_pos,1), value, font=fnt, fill='#333333')
         del draw
         
