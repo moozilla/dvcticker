@@ -31,15 +31,15 @@ def urlfetch_cache(url,exchange):
         except runtime.DeadlineExceededError: #raised if the overall request times out
             data = memcache.get('longcache'+url)
             if data is not None: return process_json(data, exchange)
-            else: return 'Error: timeout'
+            else: return 'Error: '+exchange+' timeout'
         except runtime.apiproxy_errors.DeadlineExceededError: #raised if an RPC exceeded its deadline (set)
             data = memcache.get('longcache'+url)
             if data is not None: return process_json(data, exchange)
-            else: return 'Error: timeout'
+            else: return 'Error: '+exchange+' timeout'
         except urlfetch_errors.DeadlineExceededError: #raised if the URLFetch times out
             data = memcache.get('longcache'+url)
             if data is not None: return process_json(data, exchange)
-            else: return 'Error: timeout'
+            else: return 'Error: '+exchange+' timeout'
             
 def process_json(txt, exchange):
     #should probably add error handling in case bad json is passed
