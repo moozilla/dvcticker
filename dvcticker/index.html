@@ -4,7 +4,7 @@
         <style type="text/css">
             p { line-height: 2em }
             code { border: 1px dotted #999; padding: 1px; background-color: #eee }
-            .small { font-size: 10pt }
+            .small { font-size: 10pt; margin-left: 2em }
         </style>
     </head>
     <body>
@@ -28,9 +28,11 @@
         
         <p>Supported exchanges: <br/>
         Vircurex. Supported currencies are:
-        <span class="small">BTC, USD, EUR, DVC, IXC, LTC, NMC, PPC, TRC.</span><br />
+        <br /><span class="small">BTC, USD, EUR, DVC, IXC, LTC, NMC, PPC, TRC.</span><br />
         MTGox. Supported currencies (one must be BTC):
-        <span class="small">BTC, USD, AUD, CAD, CHF, CNY, DKK, EUR, GBP, HKD, JPY, NZD, PLN, RUB, SEK, SGD, THB.</span>
+        <br /><span class="small">BTC, USD, AUD, CAD, CHF, CNY, DKK, EUR, GBP, HKD, JPY, NZD, PLN, RUB, SEK, SGD, THB.</span><br />
+        BTC-E. Supported currency pairs (can be forward or reverse):
+        <br /><span class="small">BTC/USD, BTC/RUR, BTC/EUR, LTC/BTC, LTC/USD, LTC/RUR, NMC/BTC, USD/RUR, EUR/USD, NVC/BTC, TRC/BTC, PPC/BTC</span>
         </p>
         
         <p>
@@ -45,10 +47,11 @@
         <tr><td><code>http://dvcticker.appspot.com/mtgox/btc.png&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code></td><td><img src="mtgox/btc.png" /></td></tr>
         <tr><td><code>http://dvcticker.appspot.com/mtgox/btc/jpy.png&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code></td><td><img src="mtgox/btc/jpy.png" /></td></tr>
         <tr><td><code>http://dvcticker.appspot.com/mtgox/500dkk/btc.png&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code></td><td><img src="mtgox/500dkk/btc.png" /></td></tr>
+        <tr><td><code>http://dvcticker.appspot.com/btc-e/10btc/nvc.png&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code></td><td><img src="btc-e/10btc/nvc.png" /></td></tr>
         </table>
         (The .png extension and the second currency are optional.
         USD and EUR automatically round to two decimal places.
-        All images are based on the highest bid price.)
+        All images are based on the highest bid price in the forward direction and lowest ask price in the reverse.)
         </p>
         
         <p>

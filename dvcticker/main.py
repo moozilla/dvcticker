@@ -34,34 +34,40 @@ def urlfetch_cache(url,exchange):
         except urlfetch_errors.DeadlineExceededError: #raised if the URLFetch times out
             return 'Error: timeout'
             
-def process_json(str, exchange):
+def process_json(txt, exchange):
     #should probably add error handling in case bad json is passed
     if exchange == 'vircurex':
-        if str == '"Unknown currency"': return 'Error'
-        obj = json.loads(str) 
+        if txt == '"Unknown currency"': return 'Error: bad Vircurex API result'
+        obj = json.loads(txt) 
         return obj['value']
     elif exchange == 'mtgox_bid':
-        obj = json.loads(str)
+        obj = json.loads(txt)
         if obj['result'] == 'success':
             return obj['return']['buy']['value']
         else:
             return 'Error: bad MTGox API result'
     elif exchange == 'mtgox_ask':
-        obj = json.loads(str)
+        obj = json.loads(txt)
         if obj['result'] == 'success':
             return obj['return']['sell']['value']
         else:
             return 'Error: bad MTGox API result'
+    elif exchange == 'btce_bid':
+        obj = json.loads(txt)
+        if not any('error' in s for s in obj):
+            return str(obj['ticker']['buy'])
+        else:
+            return 'Error: bad BTC-E API result'
+    elif exchange == 'btce_ask':
+        obj = json.loads(txt)
+        if not any('error' in s for s in obj):
+            return str(obj['ticker']['sell'])
+        else:
+            return 'Error: bad BTC-E API result'
     else:
         return 'Error: invalid exchange'
         
 def get_mtgox_value(base,alt,amount):
-    #if type == 'bid':
-    #    exch = 'mtgox_bid'
-    #elif type == 'ask':
-    #    exch = 'mtgox_ask'
-    #else:
-    #    return 'Error: Type must be either "bid" or "ask"'
     cur = ['usd', 'aud', 'cad', 'chf', 'cny', 'dkk',
       'eur', 'gbp', 'hkd', 'jpy', 'nzd', 'pln', 'rub', 'sek', 'sgd', 'thb']
     reverse = False # if going from cur-> btc
@@ -78,6 +84,31 @@ def get_mtgox_value(base,alt,amount):
         reverse = True
     else:
         return 'Error: invalid base currency'
+    value = urlfetch_cache(url,exch)
+    if value.startswith('Error'): return value
+    
+    if reverse: return str((Decimal(amount) / Decimal(value)).quantize(Decimal('.00000001'), rounding=ROUND_DOWN)) # need to round to a certain number
+    else: return str(Decimal(amount) * Decimal(value))
+    
+def get_btce_value(base,alt,amount):
+    # in BTC-e currencies must be traded in pairs, we also support going in reverse (buying)
+    cur_fwd = {'btc':['usd','rur','eur'], 'ltc':['btc','usd','rur'], 'nmc':['btc'], 'usd':['rur'], 'eur':['usd'], 'nvc':['btc'], 'trc':['btc'], 'ppc':['btc']}
+    cur_rev = {'btc':['ltc','nmc','nvc','trc','ppc'], 'usd':['btc','ltc'], 'rur':['btc','usd'], 'eur':['btc']}
+    reverse = False # if going from cur-> btc
+    if any(base in s for s in cur_fwd) and any(alt in s for s in cur_fwd[base]): 
+        #if not any(alt in s for s in cur_fwd[base]):
+            #return 'Error: invalid destination currency' # can't return here because some can be base or alt
+        url = 'https://btc-e.com/api/2/'+base+'_'+alt+'/ticker' #https://btc-e.com/api/2/nmc_btc/ticker
+        exch = 'btce_bid'
+    else:
+        if any(base in s for s in cur_rev):
+            if not any(alt in s for s in cur_rev[base]):
+                return 'Error: invalid currency pair'
+            url = 'https://btc-e.com/api/2/'+alt+'_'+base+'/ticker'
+            exch = 'btce_ask'
+            reverse = True
+        else:
+            return 'Error: invalid currency pair'
     value = urlfetch_cache(url,exch)
     if value.startswith('Error'): return value
     
@@ -112,8 +143,10 @@ def get_bid(exchange, amount, base, alt):
         return get_vircurex_value('bid',base,alt,amount)
     elif exchange == 'mtgox':
         return get_mtgox_value(base,alt,amount)
+    elif exchange == 'btc-e':
+        return get_btce_value(base,alt,amount)
     else:
-        return 'Error'
+        return 'Error: bad exchange'
     
 class MainHandler(webapp2.RequestHandler):
     def get(self):
@@ -153,7 +186,7 @@ class ImageHandler(webapp2.RequestHandler):
             value = u'\u20AC '+str(Decimal(value).quantize(Decimal('.01'), rounding=ROUND_DOWN))
             text_pos = 2                    # have to position euro symbol so it doesn't cut off
         elif any(alt in s for s in ['aud', 'cad', 'chf', 'cny', 'dkk',
-          'gbp', 'hkd', 'jpy', 'nzd', 'pln', 'rub', 'sek', 'sgd', 'thb']):
+          'gbp', 'hkd', 'jpy', 'nzd', 'pln', 'rub', 'sek', 'sgd', 'thb', 'rur', 'nvc']):
           value = alt.upper() + ' ' + value
           text_pos = 2
         
