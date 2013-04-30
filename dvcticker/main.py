@@ -17,16 +17,16 @@ def urlfetch_cache(url,exchange):
     # fetches a url, but using memcache to not hammer the exchanges server
     data = memcache.get(url)
     if data is not None:
-        return data
+        return process_json(data, exchange)
     else:
         try:
             result = urlfetch.fetch(url,deadline=30) #timeout after 10 sec
             if result.status_code == 200:
                 value = process_json(result.content, exchange)
-                memcache.add(url, value, 30) #cache for 30 sec
+                memcache.add(url, result.content, 30) #cache for 30 sec
                 return value
             else:
-                return 'Error'#'Error accessing Vircurex API'
+                return 'Error: '+exchange+' status code '+str(result.status_code) #'Error accessing Vircurex API'
         except runtime.DeadlineExceededError: #raised if the overall request times out
             return 'Error: timeout'
         except runtime.apiproxy_errors.DeadlineExceededError: #raised if an RPC exceeded its deadline (set)
@@ -55,23 +55,36 @@ def process_json(str, exchange):
     else:
         return 'Error: invalid exchange'
         
-def get_mtgox_value(type,base,alt):
-    if type == 'bid':
+def get_mtgox_value(base,alt,amount):
+    #if type == 'bid':
+    #    exch = 'mtgox_bid'
+    #elif type == 'ask':
+    #    exch = 'mtgox_ask'
+    #else:
+    #    return 'Error: Type must be either "bid" or "ask"'
+    cur = ['usd', 'aud', 'cad', 'chf', 'cny', 'dkk',
+      'eur', 'gbp', 'hkd', 'jpy', 'nzd', 'pln', 'rub', 'sek', 'sgd', 'thb']
+    reverse = False # if going from cur-> btc
+    if base == 'btc': 
+        if not any(alt in s for s in cur):
+            return 'Error: invalid destination currency'
+        url = 'http://data.mtgox.com/api/1/btc'+alt+'/ticker'
         exch = 'mtgox_bid'
-    elif type == 'ask':
+    elif any(base in s for s in cur):
+        if alt != 'btc':
+            return 'Error: destination currency must be BTC'
+        url = 'http://data.mtgox.com/api/1/btc'+base+'/ticker' #mtgox api always has btc first
         exch = 'mtgox_ask'
+        reverse = True
     else:
-        return 'Error: Type must be either "bid" or "ask"'
-    if base != 'btc': return 'Error: base can only be BTC for mtgox'
-    if not any(alt in s for s in ['usd', 'aud', 'cad', 'chf', 'cny', 'dkk',
-      'eur', 'gbp', 'hkd', 'jpy', 'nzd', 'pln', 'rub', 'sek', 'sgd', 'thb']):
-        return 'Error: invalid destination currency'
-    # should figure out a way to do btc as alt and a currency as base
-    url = 'http://data.mtgox.com/api/1/btc'+alt+'/ticker'
+        return 'Error: invalid base currency'
     value = urlfetch_cache(url,exch)
-    return value
+    if value.startswith('Error'): return value
     
-def get_vircurex_value(type, base, alt):
+    if reverse: return str((Decimal(amount) / Decimal(value)).quantize(Decimal('.00000001'), rounding=ROUND_DOWN)) # need to round to a certain number
+    else: return str(Decimal(amount) * Decimal(value))
+    
+def get_vircurex_value(type, base, alt, amount):
     # gets json from vircurex about bid/ask prices
     # eg. https://vircurex.com/api/get_highest_bid.json?base=BTC&alt=NMC
     if type == 'bid':
@@ -86,7 +99,7 @@ def get_vircurex_value(type, base, alt):
     
     url += '?base=' + base + '&alt=' + alt
     value = urlfetch_cache(url,'vircurex')
-    return value
+    return str(Decimal(amount)*Decimal(value)) # return amount * value
     
     #if result.status_code == 200 and result.content != '"Unknown currency"':
     #    obj = json.loads(result.content)
@@ -94,11 +107,11 @@ def get_vircurex_value(type, base, alt):
     #else:
     #    return 'Error'#'Error accessing Vircurex API'
     
-def get_bid(exchange, base, alt):
+def get_bid(exchange, amount, base, alt):
     if exchange == 'vircurex':
-        return get_vircurex_value('bid',base,alt)
+        return get_vircurex_value('bid',base,alt,amount)
     elif exchange == 'mtgox':
-        return get_mtgox_value('bid',base,alt)
+        return get_mtgox_value(base,alt,amount)
     else:
         return 'Error'
     
@@ -124,9 +137,9 @@ class ImageHandler(webapp2.RequestHandler):
             if base == 'btc': alt = 'usd'   # btc.png just shows btc value in usd
             else: alt = 'btc'               # if no alt specified, default to BTC
         alt = alt.lower()
-        bid = get_bid(exchange,base,alt)
-        if bid.startswith('Error'): value = bid
-        else: value = str(Decimal(amount)*Decimal(bid))
+        value = get_bid(exchange,amount,base,alt)
+        #if bid.startswith('Error'): value = bid
+        #else: value = str(Decimal(amount)*Decimal(bid))
         text_pos = 19                       # 3 px after coin image (all are 16x16)
         
         if value.startswith('Error'):
@@ -146,8 +159,8 @@ class ImageHandler(webapp2.RequestHandler):
         
         img = Image.new("RGBA", (1,1))      # just used to calculate the text size, size doesn't matter
         draw = ImageDraw.Draw(img)
-        fnt = ImageFont.load('static/font/ncenB12.pil') # for testing locally, can't get truetype to work locally
-        #fnt = ImageFont.truetype('static/font/tahoma_bold.ttf', 14, encoding='unic')
+        #fnt = ImageFont.load('static/font/ncenB12.pil') # for testing locally, can't get truetype to work locally
+        fnt = ImageFont.truetype('static/font/tahoma_bold.ttf', 14, encoding='unic')
         w, h = draw.textsize(value, fnt)    # calculate width font will take up
         
         del img
