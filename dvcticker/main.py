@@ -24,15 +24,22 @@ def urlfetch_cache(url,exchange):
             if result.status_code == 200:
                 value = process_json(result.content, exchange)
                 memcache.add(url, result.content, 30) #cache for 30 sec
+                memcache.add('longcache'+url, result.content, 3000) #also cache for 5min in case of timeouts
                 return value
             else:
                 return 'Error: '+exchange+' status code '+str(result.status_code) #'Error accessing Vircurex API'
         except runtime.DeadlineExceededError: #raised if the overall request times out
-            return 'Error: timeout'
+            data = memcache.get('longcache'+url)
+            if data is not None: return process_json(data, exchange)
+            else: return 'Error: timeout'
         except runtime.apiproxy_errors.DeadlineExceededError: #raised if an RPC exceeded its deadline (set)
-            return 'Error: timeout'
+            data = memcache.get('longcache'+url)
+            if data is not None: return process_json(data, exchange)
+            else: return 'Error: timeout'
         except urlfetch_errors.DeadlineExceededError: #raised if the URLFetch times out
-            return 'Error: timeout'
+            data = memcache.get('longcache'+url)
+            if data is not None: return process_json(data, exchange)
+            else: return 'Error: timeout'
             
 def process_json(txt, exchange):
     #should probably add error handling in case bad json is passed
