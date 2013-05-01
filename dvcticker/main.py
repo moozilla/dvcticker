@@ -20,7 +20,7 @@ def urlfetch_cache(url,exchange):
         return process_json(data, exchange)
     else:
         try:
-            result = urlfetch.fetch(url,deadline=30) #timeout after 10 sec
+            result = urlfetch.fetch(url,deadline=30) #timeout after 30 sec
             if result.status_code == 200:
                 value = process_json(result.content, exchange)
                 memcache.add(url, result.content, 30) #cache for 30 sec
@@ -37,6 +37,10 @@ def urlfetch_cache(url,exchange):
             if data is not None: return process_json(data, exchange)
             else: return 'Error: '+exchange+' timeout'
         except urlfetch_errors.DeadlineExceededError: #raised if the URLFetch times out
+            data = memcache.get('longcache'+url)
+            if data is not None: return process_json(data, exchange)
+            else: return 'Error: '+exchange+' timeout'
+        except urlfetch.Error: #catch DownloadError
             data = memcache.get('longcache'+url)
             if data is not None: return process_json(data, exchange)
             else: return 'Error: '+exchange+' timeout'
@@ -131,7 +135,7 @@ def get_vircurex_value(type, base, alt, amount):
         url = 'https://vircurex.com/api/get_lowest_ask.json'
     else:
         return 'Error: Type must be either "bid" or "ask"'
-    cur = ['btc', 'dvc', 'ixc', 'ltc', 'nmc', 'ppc', 'trc', 'usd', 'eur']
+    cur = ['btc', 'dvc', 'ixc', 'ltc', 'nmc', 'ppc', 'trc', 'usd', 'eur', 'ftc']
     if not any(base in s for s in cur): return 'Error: invalid currency'
     if not any(alt in s for s in cur): return 'Error: invalid currency'
     
@@ -207,7 +211,7 @@ class ImageHandler(webapp2.RequestHandler):
         img = Image.new("RGBA", (w+text_pos,20))
         draw = ImageDraw.Draw(img)          # set draw to new image
         #text_pos 0 = error
-        if text_pos!=0 and any(alt in s for s in ['btc', 'dvc', 'ixc', 'ltc', 'nmc', 'ppc', 'trc']):
+        if text_pos!=0 and any(alt in s for s in ['btc', 'dvc', 'ixc', 'ltc', 'nmc', 'ppc', 'trc', 'ftc']):
             coinimg = Image.open('static/img/'+alt+'.png') 
             img.paste(coinimg, (0,2))       #paste the coin image into the generated image
         
