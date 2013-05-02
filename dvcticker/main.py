@@ -141,6 +141,7 @@ def get_vircurex_value(type, base, alt, amount):
     
     url += '?base=' + base + '&alt=' + alt
     value = urlfetch_cache(url,'vircurex')
+    if value.startswith('Error'): return value
     return str(Decimal(amount)*Decimal(value)) # return amount * value
     
     #if result.status_code == 200 and result.content != '"Unknown currency"':
