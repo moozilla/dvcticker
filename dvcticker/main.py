@@ -103,8 +103,8 @@ def get_mtgox_value(base,alt,amount):
     
 def get_btce_value(base,alt,amount):
     # in BTC-e currencies must be traded in pairs, we also support going in reverse (buying)
-    cur_fwd = {'btc':['usd','rur','eur'], 'ltc':['btc','usd','rur'], 'nmc':['btc'], 'usd':['rur'], 'eur':['usd'], 'nvc':['btc'], 'trc':['btc'], 'ppc':['btc']}
-    cur_rev = {'btc':['ltc','nmc','nvc','trc','ppc'], 'usd':['btc','ltc'], 'rur':['btc','usd'], 'eur':['btc']}
+    cur_fwd = {'btc':['usd','rur','eur'], 'ltc':['btc','usd','rur'], 'nmc':['btc'], 'usd':['rur'], 'eur':['usd'], 'nvc':['btc'], 'trc':['btc'], 'ppc':['btc'], 'ftc':['btc']}
+    cur_rev = {'btc':['ltc','nmc','nvc','trc','ppc','ftc'], 'usd':['btc','ltc'], 'rur':['btc','usd'], 'eur':['btc']}
     reverse = False # if going from cur-> btc
     if any(base in s for s in cur_fwd) and any(alt in s for s in cur_fwd[base]): 
         #if not any(alt in s for s in cur_fwd[base]):
