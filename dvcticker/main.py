@@ -135,8 +135,8 @@ def get_mtgox_value(base,alt,amount):
     
 def get_btce_value(base,alt,amount):
     # in BTC-e currencies must be traded in pairs, we also support going in reverse (buying)
-    cur_fwd = {'btc':['usd','rur','eur'], 'ltc':['btc','usd','rur'], 'nmc':['btc'], 'usd':['rur'], 'eur':['usd'], 'nvc':['btc'], 'trc':['btc'], 'ppc':['btc'], 'ftc':['btc']}
-    cur_rev = {'btc':['ltc','nmc','nvc','trc','ppc','ftc'], 'usd':['btc','ltc'], 'rur':['btc','usd'], 'eur':['btc']}
+    cur_fwd = {'btc':['usd','rur','eur'], 'ltc':['btc','usd','rur'], 'nmc':['btc'], 'usd':['rur'], 'eur':['usd'], 'nvc':['btc'], 'trc':['btc'], 'ppc':['btc'], 'ftc':['btc'], 'cnc':['btc']}
+    cur_rev = {'btc':['ltc','nmc','nvc','trc','ppc','ftc','cnc'], 'usd':['btc','ltc'], 'rur':['btc','usd'], 'eur':['btc']}
     reverse = False # if going from cur-> btc
     if any(base in s for s in cur_fwd) and any(alt in s for s in cur_fwd[base]): 
         #if not any(alt in s for s in cur_fwd[base]):
@@ -253,7 +253,7 @@ class ImageHandler(webapp2.RequestHandler):
           text_pos = 2
         
         #text_pos 0 = error
-        if text_pos!=0 and any(alt in s for s in ['btc', 'dvc', 'ixc', 'ltc', 'nmc', 'ppc', 'trc', 'ftc','frc']):
+        if text_pos!=0 and any(alt in s for s in ['btc', 'dvc', 'ixc', 'ltc', 'nmc', 'ppc', 'trc', 'ftc', 'frc', 'cnc']):
             coinimg = Image.open('static/img/'+alt+'.png') 
         else: coinimg = None    
             
