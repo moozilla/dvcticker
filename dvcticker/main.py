@@ -1,3 +1,5 @@
+#todo: raise exceptions, then catch them to generate error images
+
 import webapp2
 from google.appengine.api import urlfetch
 import json
@@ -12,6 +14,9 @@ from google.appengine.api import urlfetch_errors # "
 
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))
+    
+#imgFont = ImageFont.load('static/font/ncenB12.pil') # for testing locally, can't get truetype to work locally
+imgFont = ImageFont.truetype('static/font/tahoma_bold.ttf', 14, encoding='unic')
 
 def urlfetch_cache(url,exchange):
     # fetches a url, but using memcache to not hammer the exchanges server
@@ -75,13 +80,40 @@ def process_json(txt, exchange):
             return str(obj['ticker']['sell'])
         else:
             return 'Error: bad BTC-E API result'
+    elif exchange == 'campbx_bid':
+        obj = json.loads(txt)
+        # need to check for error
+        return obj['Best Bid']
+    elif exchange == 'campbx_ask':
+        obj = json.loads(txt)
+        # need to check for error
+        return obj['Best Ask']
     else:
         return 'Error: invalid exchange'
+        
+def get_campbx_value(base,alt,amount):
+    url = 'http://campbx.com/api/xticker.php'
+    reverse = False
+    if base == 'btc':
+        if alt != 'usd': return 'Error: only BTC/USD valid on CampBX'
+        exch = 'campbx_bid'
+    elif base == 'usd':
+        if alt != 'btc': return 'Error: only BTC/USD valid on CampBX'
+        exch = 'campbx_ask'
+        reverse = True
+    else:
+        return 'Error: only BTC/USD valid on CampBX'
+    
+    value = urlfetch_cache(url,exch)
+    if value.startswith('Error'): return value
+    
+    if reverse: return str((Decimal(amount) / Decimal(value)).quantize(Decimal('.00000001'), rounding=ROUND_DOWN)) # need to round to a certain number
+    else: return str(Decimal(amount) * Decimal(value))
         
 def get_mtgox_value(base,alt,amount):
     cur = ['usd', 'aud', 'cad', 'chf', 'cny', 'dkk',
       'eur', 'gbp', 'hkd', 'jpy', 'nzd', 'pln', 'rub', 'sek', 'sgd', 'thb']
-    reverse = False # if going from cur-> btc
+    reverse = False # true if going from cur-> btc
     if base == 'btc': 
         if not any(alt in s for s in cur):
             return 'Error: invalid destination currency'
@@ -135,7 +167,7 @@ def get_vircurex_value(type, base, alt, amount):
         url = 'https://vircurex.com/api/get_lowest_ask.json'
     else:
         return 'Error: Type must be either "bid" or "ask"'
-    cur = ['btc', 'dvc', 'ixc', 'ltc', 'nmc', 'ppc', 'trc', 'usd', 'eur', 'ftc']
+    cur = ['btc', 'dvc', 'ixc', 'ltc', 'nmc', 'ppc', 'trc', 'usd', 'eur', 'ftc', 'frc']
     if not any(base in s for s in cur): return 'Error: invalid currency'
     if not any(alt in s for s in cur): return 'Error: invalid currency'
     
@@ -144,12 +176,6 @@ def get_vircurex_value(type, base, alt, amount):
     if value.startswith('Error'): return value
     return str(Decimal(amount)*Decimal(value)) # return amount * value
     
-    #if result.status_code == 200 and result.content != '"Unknown currency"':
-    #    obj = json.loads(result.content)
-    #    return obj['value']
-    #else:
-    #    return 'Error'#'Error accessing Vircurex API'
-    
 def get_bid(exchange, amount, base, alt):
     if exchange == 'vircurex':
         return get_vircurex_value('bid',base,alt,amount)
@@ -157,8 +183,32 @@ def get_bid(exchange, amount, base, alt):
         return get_mtgox_value(base,alt,amount)
     elif exchange == 'btc-e':
         return get_btce_value(base,alt,amount)
+    elif exchange == 'campbx':
+        return get_campbx_value(base,alt,amount)
     else:
         return 'Error: bad exchange'
+    
+def get_text_width(str):
+    img = Image.new("RGBA", (1,1))      # just used to calculate the text size, size doesn't matter
+    draw = ImageDraw.Draw(img)
+    w, h = draw.textsize(str, imgFont)    # calculate width font will take up
+    return w
+        
+# returns text, with optional coin icon, in string encoded form so it can be written to HTTP response
+def make_img(str, text_pos, coinimg=None):
+        img = Image.new("RGBA", (get_text_width(str) + text_pos, 20))
+        draw = ImageDraw.Draw(img)          # set draw to new image
+        
+        if coinimg != None:
+            img.paste(coinimg, (0,2))       #paste the coin image into the generated image
+        
+        draw.text((text_pos,1), str, font=imgFont, fill='#555555')
+        
+        output = StringIO.StringIO()
+        img.save(output, format='png')
+        img_to_serve = output.getvalue()
+        output.close()    
+        return img_to_serve
     
 class MainHandler(webapp2.RequestHandler):
     def get(self):
@@ -202,32 +252,25 @@ class ImageHandler(webapp2.RequestHandler):
           value = alt.upper() + ' ' + value
           text_pos = 2
         
-        img = Image.new("RGBA", (1,1))      # just used to calculate the text size, size doesn't matter
-        draw = ImageDraw.Draw(img)
-        #fnt = ImageFont.load('static/font/ncenB12.pil') # for testing locally, can't get truetype to work locally
-        fnt = ImageFont.truetype('static/font/tahoma_bold.ttf', 14, encoding='unic')
-        w, h = draw.textsize(value, fnt)    # calculate width font will take up
-        
-        del img
-        img = Image.new("RGBA", (w+text_pos,20))
-        draw = ImageDraw.Draw(img)          # set draw to new image
         #text_pos 0 = error
-        if text_pos!=0 and any(alt in s for s in ['btc', 'dvc', 'ixc', 'ltc', 'nmc', 'ppc', 'trc', 'ftc']):
+        if text_pos!=0 and any(alt in s for s in ['btc', 'dvc', 'ixc', 'ltc', 'nmc', 'ppc', 'trc', 'ftc','frc']):
             coinimg = Image.open('static/img/'+alt+'.png') 
-            img.paste(coinimg, (0,2))       #paste the coin image into the generated image
-        
-        draw.text((text_pos,1), value, font=fnt, fill='#555555')
-        del draw
-        
-        output = StringIO.StringIO()
-        img.save(output, format='png')
-        img_to_serve = output.getvalue()
-        output.close()
+        else: coinimg = None    
+            
+        img_to_serve = make_img(value, text_pos, coinimg)
         
         self.response.headers['Content-Type'] = 'image/png'
         self.response.out.write(img_to_serve)
-
+        
+class ErrorHandler(webapp2.RequestHandler):
+    def get(self):
+        img_to_serve = make_img('Error: Malformed URL', 0)
+        
+        self.response.headers['Content-Type'] = 'image/png'
+        self.response.out.write(img_to_serve)
+        
 app = webapp2.WSGIApplication([
     ('/', MainHandler),
-    ('/([^/]+)/(\d*\.?\d*)([A-Za-z]{3})(?:/([A-Za-z]{3}))?(?:\.png)?', ImageHandler)
+    ('/([^/]+)/(\d*\.?\d*)([A-Za-z]+)(?:/([A-Za-z]+))?(?:\.png)?', ImageHandler),
+    ('/.*', ErrorHandler)
 ], debug=True)
