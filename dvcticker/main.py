@@ -167,7 +167,7 @@ def get_vircurex_value(type, base, alt, amount):
         url = 'https://vircurex.com/api/get_lowest_ask.json'
     else:
         return 'Error: Type must be either "bid" or "ask"'
-    cur = ['btc', 'dvc', 'ixc', 'ltc', 'nmc', 'ppc', 'trc', 'usd', 'eur', 'ftc', 'frc']
+    cur = ['btc', 'dvc', 'ixc', 'ltc', 'nmc', 'ppc', 'trc', 'usd', 'eur', 'ftc', 'frc', 'cnc']
     if not any(base in s for s in cur): return 'Error: invalid currency'
     if not any(alt in s for s in cur): return 'Error: invalid currency'
     
